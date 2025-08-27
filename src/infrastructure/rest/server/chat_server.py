@@ -5,6 +5,22 @@ from src.application.ChatWithAgentUseCase import ChatWithAgentUseCase
 from src.application.CreateNewThreadUseCase import CreateNewThreadUseCase
 from src.infrastructure.azure.AzureFoundryAgentService import AzureFoundryAgentService
 import logging
+import sys
+
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
+logging.getLogger("azure").setLevel(logging.WARNING)
+logging.getLogger("azure.identity").setLevel(logging.WARNING)
+logging.getLogger("azure.core").setLevel(logging.WARNING)
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 app = FastAPI(
     title="Camp Chat Backend",
@@ -34,8 +50,8 @@ def chat_with_agent(request: ChatRequest):
         "message": "Hola, ¿cómo estás?"
     }
     """
-    logging.info(f"Received chat request: thread_id={request.thread_id}, message={request.message}")
-    
+    logger.info(f"Received chat request: thread_id={request.thread_id}, message={request.message}")
+
     azure_chat_service = get_azure_chat_service()
     response = ChatWithAgentUseCase(azure_chat_service).execute(request.thread_id, request.message)
     return JSONResponse(content=response.agent_reply, status_code=200)
