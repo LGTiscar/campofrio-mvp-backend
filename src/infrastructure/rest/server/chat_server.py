@@ -4,6 +4,7 @@ from src.domain.models.ChatRequest import ChatRequest
 from src.application.ChatWithAgentUseCase import ChatWithAgentUseCase
 from src.application.CreateNewThreadUseCase import CreateNewThreadUseCase
 from src.infrastructure.azure.AzureFoundryAgentService import AzureFoundryAgentService
+import logging
 
 app = FastAPI(
     title="Camp Chat Backend",
@@ -33,6 +34,8 @@ def chat_with_agent(request: ChatRequest):
         "message": "Hola, ¿cómo estás?"
     }
     """
+    logging.info(f"Received chat request: thread_id={request.thread_id}, message={request.message}")
+    
     azure_chat_service = get_azure_chat_service()
     response = ChatWithAgentUseCase(azure_chat_service).execute(request.thread_id, request.message)
     return JSONResponse(content=response.agent_reply, status_code=200)
