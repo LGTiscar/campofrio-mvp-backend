@@ -1,17 +1,18 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from src.domain.models.ChatRequest import ChatRequest
 from src.application.ChatWithAgentUseCase import ChatWithAgentUseCase
 from src.application.CreateNewThreadUseCase import CreateNewThreadUseCase
 from src.infrastructure.azure.AzureFoundryAgentService import AzureFoundryAgentService
 import logging
 import sys
+import json
 
-logging.basicConfig(
-    stream=sys.stdout,
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-)
+from src.infrastructure.azure.AzureFoundryAgentService import AzureFoundryAgentService
+
+app = FastAPI()
+service = AzureFoundryAgentService()
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +22,25 @@ logging.getLogger("azure.core").setLevel(logging.WARNING)
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
 
 app = FastAPI(
     title="Camp Chat Backend",
     description="API REST para chat con agente Azure",
     version="1.0.0"
+)
+
+# Allow CORS from local frontend(s) to handle browser preflight OPTIONS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080", "http://127.0.0.1:8080"],
+    allow_credentials=True,
+    allow_methods=["POST", "OPTIONS" , "GET"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
@@ -35,8 +50,23 @@ async def root():
     """
     return {"message": "Backend del Agente Campofrío"}
 
-def get_azure_chat_service():
-    return AzureFoundryAgentService()
+@app.post("/chat/stream")
+async def chat_stream(request: Request):
+    payload = await request.json()
+    thread_id = payload.get("thread_id")
+    message = payload.get("message")
+
+    if not thread_id or not message:
+        return JSONResponse({"error": "thread_id and message are required"}, status_code=400)
+
+    def event_stream():
+        for evt in service.chat_stream(thread_id, message):
+            data = json.dumps(evt)
+            yield f"data: {data}\n\n"
+        # final event
+        yield "event: done\ndata: {}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 @app.post("/chat")
 def chat_with_agent(request: ChatRequest):
@@ -52,8 +82,7 @@ def chat_with_agent(request: ChatRequest):
     """
     logger.info(f"Received chat request: thread_id={request.thread_id}, message={request.message}")
 
-    azure_chat_service = get_azure_chat_service()
-    response = ChatWithAgentUseCase(azure_chat_service).execute(request.thread_id, request.message)
+    response = ChatWithAgentUseCase(service).execute(request.thread_id, request.message)
     return JSONResponse(content=response.agent_reply, status_code=200)
 
 @app.post("/thread")
@@ -66,9 +95,8 @@ def create_thread():
         "thread_id": "abc123"
     }
     """
-    azure_chat_service = get_azure_chat_service()
     try:
-        thread_id = CreateNewThreadUseCase(azure_chat_service).execute()
+        thread_id = CreateNewThreadUseCase(service).execute()
         return JSONResponse(content={"thread_id": thread_id}, status_code=201)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
