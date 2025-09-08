@@ -1,10 +1,10 @@
 from src.domain.providers.LLMProvider import LLMProvider
+from src.infrastructure.SingletonMeta import SingletonMeta
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
-from azure.ai.agents.models import ListSortOrder
 
 
-class AzureFoundryLlmProvider(LLMProvider):
+class AzureFoundryLlmProvider(LLMProvider, metaclass=SingletonMeta):
     def __init__(self):
         self.project = AIProjectClient(
             credential=DefaultAzureCredential(managed_identity_client_id="luisgtiscar@pospotential.com"),

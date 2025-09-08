@@ -1,12 +1,12 @@
 from src.domain.services.ChatService import ChatService
 from src.domain.models.ChatResponse import ChatResponse
 from src.infrastructure.azure.AzureFoundryLlmProvider import AzureFoundryLlmProvider
+from src.infrastructure.SingletonMeta import SingletonMeta
 from azure.ai.agents.models import MessageRole, AgentStreamEvent, MessageDeltaChunk
-import json
 import logging
 
 
-class AzureFoundryAgentService(ChatService):
+class AzureFoundryAgentService(ChatService, metaclass=SingletonMeta):
     def __init__(self):
         self.provider: AzureFoundryLlmProvider = AzureFoundryLlmProvider()
         self.project = self.provider.get_project()
