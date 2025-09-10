@@ -55,6 +55,7 @@ async def chat_stream(request: Request):
     payload = await request.json()
     thread_id = payload.get("thread_id")
     message = payload.get("message")
+    logger.info(f"Received streaming chat request: thread_id={thread_id}, message={message}")
 
     if not thread_id or not message:
         return JSONResponse({"error": "thread_id and message are required"}, status_code=400)

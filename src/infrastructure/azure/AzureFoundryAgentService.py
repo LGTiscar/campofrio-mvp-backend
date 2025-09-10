@@ -4,7 +4,21 @@ from src.infrastructure.azure.AzureFoundryLlmProvider import AzureFoundryLlmProv
 from src.infrastructure.SingletonMeta import SingletonMeta
 from azure.ai.agents.models import MessageRole, AgentStreamEvent, MessageDeltaChunk
 import logging
+import sys
 
+logger = logging.getLogger(__name__)
+
+logging.getLogger("azure").setLevel(logging.WARNING)
+logging.getLogger("azure.identity").setLevel(logging.WARNING)
+logging.getLogger("azure.core").setLevel(logging.WARNING)
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
 
 class AzureFoundryAgentService(ChatService, metaclass=SingletonMeta):
     def __init__(self):
@@ -64,7 +78,7 @@ class AzureFoundryAgentService(ChatService, metaclass=SingletonMeta):
 
         # Abrir el stream del run proporcionado por el SDK
         try:
-            with self.project.agents.runs.stream(thread_id=thread_id, agent_id=self.agent.id) as stream:
+            with self.project.agents.runs.stream(thread_id=thread_id, agent_id=self.agent.id, parallel_tool_calls=True) as stream:
                 full_text = ""
                 for event_type, event_data, _ in stream:
                     # Deltas parciales de texto
@@ -81,6 +95,10 @@ class AzureFoundryAgentService(ChatService, metaclass=SingletonMeta):
                     # Errores
                     elif event_type == AgentStreamEvent.ERROR:
                         yield {"type": "error", "text": str(event_data)}
+                        break
+                    elif event_type == AgentStreamEvent.THREAD_RUN_FAILED:
+                        logger.info(f"Thread run failed: {event_data.last_error}")
+                        yield {"type": "error", "text": f"Thread run failed: {event_data.last_error}"}
                         break
                     else:
                         # Ignorar otros eventos por ahora
