@@ -5,6 +5,7 @@ from src.infrastructure.SingletonMeta import SingletonMeta
 from azure.ai.agents.models import MessageRole, AgentStreamEvent, MessageDeltaChunk
 import logging
 import sys
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,7 @@ class AzureFoundryAgentService(ChatService, metaclass=SingletonMeta):
         # Abrir el stream del run proporcionado por el SDK
         try:
             with self.project.agents.runs.stream(thread_id=thread_id, agent_id=self.agent.id, parallel_tool_calls=True) as stream:
+                start = time.time()
                 full_text = ""
                 for event_type, event_data, _ in stream:
                     # Deltas parciales de texto
@@ -90,7 +92,8 @@ class AzureFoundryAgentService(ChatService, metaclass=SingletonMeta):
 
                     # Run completo / fin de stream
                     elif event_type == AgentStreamEvent.DONE:
-                        yield {"type": "done", "text": full_text}
+                        logger.info(f"Run completed in {time.time() - start:.2f} seconds")
+                        yield {"type": "done", "text": f"Run completed in {time.time() - start:.2f} seconds: " + full_text}
                         break
 
                     # Errores
