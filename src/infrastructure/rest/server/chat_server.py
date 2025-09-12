@@ -60,14 +60,19 @@ async def chat_stream(request: Request):
     if not thread_id or not message:
         return JSONResponse({"error": "thread_id and message are required"}, status_code=400)
 
-    def event_stream():
-        for evt in service.chat_stream(thread_id, message):
-            data = json.dumps(evt)
-            yield f"data: {data}\n\n"
-        # final event
-        yield "event: done\ndata: {}\n\n"
+    try:
+        def event_stream():
+            for evt in service.chat_stream(thread_id, message):
+                data = json.dumps(evt)
+                yield f"data: {data}\n\n"
+            # final event
+            yield "event: done\ndata: {}\n\n"
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+    
+    except Exception as e:
+
+        return JSONResponse({"error": "Server error, probabily reached quota limit"}, status_code=400)
 
 @app.post("/chat")
 def chat_with_agent(request: ChatRequest):

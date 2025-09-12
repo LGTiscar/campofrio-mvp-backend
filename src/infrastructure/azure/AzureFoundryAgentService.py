@@ -84,6 +84,7 @@ class AzureFoundryAgentService(ChatService, metaclass=SingletonMeta):
                     # Deltas parciales de texto
                     if isinstance(event_data, MessageDeltaChunk):
                         delta = (event_data.text or "")
+                        logger.info(f"Delta generated: {delta}")
                         full_text += delta
                         yield {"type": "delta", "text": delta}
 
