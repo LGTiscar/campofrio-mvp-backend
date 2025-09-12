@@ -74,8 +74,13 @@ class AzureFoundryAgentService(ChatService, metaclass=SingletonMeta):
 
         El cliente puede consumir estos eventos y mostrarlos incrementalmente.
         """
+
+        # Añade la fecha al system prompt
+        fecha = time.strftime("%Y-%m-%d")
+        fecha_prompt = f"La fecha actual es {fecha}. Usa esta información en tus respuestas si es relevante."
+        
         # Crear el mensaje del usuario
-        self.project.agents.messages.create(thread_id, role=MessageRole.USER, content=user_message)
+        self.project.agents.messages.create(thread_id, role=MessageRole.USER, content=user_message + "\n" + fecha_prompt)
 
         # Abrir el stream del run proporcionado por el SDK
         try:
