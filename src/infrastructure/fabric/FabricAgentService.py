@@ -81,6 +81,6 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
                 self._logger.info("✅ Streaming completed successfully")
                 end_time = time.time()
                 self._logger.info(f"⏱️ Total time: {end_time - start_time} seconds")
-                yield {"done"}
+                yield {"done": True}
                 
         

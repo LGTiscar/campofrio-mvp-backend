@@ -157,8 +157,8 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
             try:
                 agent = client.beta.assistants.retrieve(assistant_id=assistant_id)
                 logger.info(f"✅ Agent retrieved with ID: {agent.id}")
-            except:
-                logger.info(f"❌ Agent with ID {assistant_id} not found. Creating a new one...")
+            except Exception as e:
+                logger.info(f"❌ Agent with ID {assistant_id} not found. {e}. Creating a new one...")
                 agent = self._create_agent()
         
         return agent
