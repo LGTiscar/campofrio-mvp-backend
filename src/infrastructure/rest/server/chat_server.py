@@ -14,7 +14,6 @@ from src.infrastructure.fabric.FabricAgentService import FabricAgentService
 
 app = FastAPI()
 service = AzureFoundryAgentService()
-fabric_service = FabricAgentService()
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +118,7 @@ def create_thread_fabric():
         "thread_id": "abc123"
     }
     """
+    fabric_service = FabricAgentService()
     try:
         thread_id = CreateNewThreadUseCase(fabric_service).execute()
         return JSONResponse(content={"thread_id": thread_id}, status_code=201)
@@ -130,7 +130,10 @@ async def chat_stream_fabric(request: Request):
     payload = await request.json()
     thread_id = payload.get("thread_id")
     message = payload.get("message")
-    logger.info(f"Received streaming chat request: thread_id={thread_id}, message={message}")
+    assistant_id = payload.get("assistant_id", None)
+    logger.info(f"Received streaming chat request: thread_id={thread_id}, message={message}, assistant_id={assistant_id}")
+
+    fabric_service = FabricAgentService(assistant_id)
 
     if not thread_id or not message:
         return JSONResponse({"error": "thread_id and message are required"}, status_code=400)
@@ -142,7 +145,7 @@ async def chat_stream_fabric(request: Request):
                 yield f"data: {data}\n\n"
             # final event
             yield "event: done\ndata: {}\n\n"
-
+            
         return StreamingResponse(event_stream_fabric(), media_type="text/event-stream")
     
     except Exception as e:

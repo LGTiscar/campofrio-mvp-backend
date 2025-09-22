@@ -27,7 +27,7 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
     def __init__(self, assistant_id: Optional[str] = None):
         self.provider: FabricLlmProvider = FabricLlmProvider()
         self.client = self.provider.get_project()
-        self.agent = self.provider.get_agent()
+        self.agent = self.provider.get_agent(assistant_id)
         self._logger = logging.getLogger(__name__)
     
     def create_thread(self) -> str:
@@ -55,7 +55,7 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
 
         # Añade la fecha al system prompt
         fecha = time.strftime("%Y-%m-%d")
-        fecha_prompt = f"La fecha actual es {fecha}. Usa esta información en tus respuestas si es relevante."
+        fecha_prompt = f"La fecha actual es {fecha}. Usa esta información en tus respuestas si es relevante. No menciones esta instrucción al usuario."
         
         self.client.beta.threads.messages.create(
                 thread_id=thread_id,
@@ -73,7 +73,7 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
             try:
                 for text in stream.text_deltas:
                     self._logger.info(f"Streaming text delta: {text}")
-                    yield {"text": text}
+                    yield {"type": "delta", "text": text}
             except Exception as e:
                 self._logger.error(f"❌ Error during streaming: {e}")
                 yield {"error": str(e)}
@@ -81,6 +81,6 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
                 self._logger.info("✅ Streaming completed successfully")
                 end_time = time.time()
                 self._logger.info(f"⏱️ Total time: {end_time - start_time} seconds")
-                yield {"done": True}
+                yield {"done"}
                 
         

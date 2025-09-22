@@ -1,5 +1,6 @@
 from src.domain.providers.LLMProvider import LLMProvider
 from src.domain.exceptions.AgentCreationException import AgentCreationException
+from src.domain.prompts.AgentSystemPrompt import AgentSystemPrompt
 from src.infrastructure.SingletonMeta import SingletonMeta
 from azure.identity import DefaultAzureCredential
 import time
@@ -130,8 +131,10 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
         client = self._get_openai_client()
         
         try:
-            # TODO: añadir instrucciones para crear el agente
-            agent = client.beta.assistants.create(model="not used")
+            agent = client.beta.assistants.create(
+                model="gpt-5", 
+                instructions=AgentSystemPrompt().prompt,
+                top_p=0.6)
             logger.info(f"✅ Agent created with ID: {agent.id}")
         except Exception as e:
             logger.error(f"❌ Failed to create agent: {e}")
