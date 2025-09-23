@@ -1,6 +1,5 @@
 from src.domain.providers.LLMProvider import LLMProvider
 from src.domain.exceptions.AgentCreationException import AgentCreationException
-from src.domain.prompts.AgentSystemPrompt import AgentSystemPrompt
 from src.infrastructure.SingletonMeta import SingletonMeta
 from azure.identity import DefaultAzureCredential
 import time
@@ -112,7 +111,7 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
         return OpenAI(
             api_key="",  # Not used - we use Bearer token
             base_url=self.data_agent_url,
-            default_query={"api-version": "2024-05-01-preview"},
+            default_query={"api-version": "2025-04-01-preview"},
             default_headers={
                 "Authorization": f"Bearer {self.token.token}",
                 "Accept": "application/json",
@@ -133,7 +132,6 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
         try:
             agent = client.beta.assistants.create(
                 model="gpt-5", 
-                instructions=AgentSystemPrompt().prompt,
                 top_p=0.6)
             logger.info(f"✅ Agent created with ID: {agent.id}")
         except Exception as e:
