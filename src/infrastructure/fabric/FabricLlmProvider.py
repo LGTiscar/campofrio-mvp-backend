@@ -112,7 +112,7 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
         return OpenAI(
             api_key="",  # Not used - we use Bearer token
             base_url=self.data_agent_url,
-            default_query={"api-version": "2024-05-01-preview"},
+            default_query={"api-version": "2025-04-01-preview"},
             default_headers={
                 "Authorization": f"Bearer {self.token.token}",
                 "Accept": "application/json",
