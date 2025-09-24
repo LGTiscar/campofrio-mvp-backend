@@ -120,6 +120,28 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
                 run_id=run.id
             )
 
+            # Get messages
+            messages = self.client.beta.threads.messages.list(
+                thread_id=thread_id,
+                order="asc"
+            )
+            messages_data = messages.model_dump()
+            assistant_messages = [msg for msg in messages_data.get('data', []) if msg.get('role') == 'assistant']
+            if assistant_messages:
+                latest_message = assistant_messages[-1]
+                content = latest_message.get('content', [])
+                if content and len(content) > 0:
+                    # Extract text content
+                    text_content = ""
+                    if isinstance(content[0], dict):
+                        if 'text' in content[0]:
+                            if isinstance(content[0]['text'], dict) and 'value' in content[0]['text']:
+                                text_content = content[0]['text']['value']
+                            else:
+                                text_content = str(content[0]['text'])
+                    else:
+                        text_content = str(content[0])
+
             sql_analysis = self.sql_extractor._extract_sql_queries_with_data(steps)
 
             # Also try the old regex method as backup
@@ -130,6 +152,7 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
                     sql_analysis["data_retrieval_query"] = regex_queries[0] if regex_queries else None
             
             result = {}
+            result["final_response"] = text_content
 
             # Add SQL analysis if found
             if sql_analysis["queries"]:
