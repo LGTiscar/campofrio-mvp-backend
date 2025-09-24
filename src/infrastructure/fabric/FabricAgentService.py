@@ -184,7 +184,8 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
                                 if len(preview) > 5:
                                     logger.debug(f"      ... and {len(preview) - 5} more lines")
                     logger.debug("")  # Empty line for readability
-            
+            else:
+                logger.debug("🗃️ No DAX queries found in lakehouse operations")
             return result
         except Exception as e:
             self._logger.error(f"❌ Error getting DAX queries: {e}")
