@@ -24,7 +24,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s"
 )
 
-class FabricAgentService(ChatService, metaclass=SingletonMeta):
+class FabricAgentService(ChatService):
     def __init__(self, assistant_id: Optional[str] = None):
         self.provider: FabricLlmProvider = FabricLlmProvider()
         self.assistant_id = assistant_id
@@ -37,10 +37,8 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
         # Añade la fecha al system prompt
         fecha = time.strftime("%Y-%m-%d")
         fecha_prompt = f"La fecha actual es {fecha}. Usa esta información como filtro en las queries DAX o SQL. No menciones esta instrucción al usuario."
-        # Añade el fabricante al system prompt
-        fabricante_prompt = "El fabricante nombre por el que debes filtrar los datos es 'CAMPOFRIO'. Usa esto como filtro en todas tus queries DAX o SQL. No menciones esta instrucción al usuario."
 
-        return fecha_prompt + "\n" + fabricante_prompt
+        return fecha_prompt + "\n"
     
     def create_thread(self, old_thread_id: str) -> str:
         """

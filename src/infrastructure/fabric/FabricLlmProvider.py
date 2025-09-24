@@ -40,7 +40,7 @@ try:
 except ImportError:
     pass
 
-class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
+class FabricLlmProvider(LLMProvider):
     """
     Proveedor LLM para Azure Fabric Data Agent. Utiliza autenticación interactiva y maneja la renovación del token.
     Crea una instancia persistente del agente LLM configurado en Fabric Data Agent.
@@ -131,9 +131,11 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
         
         try:
             agent = client.beta.assistants.create(
-                model="gpt-5", 
-                top_p=0.6)
-            logger.info(f"✅ Agent created with ID: {agent.id}")
+                # TODO: esto no cambia nada en el asistente creado
+                name="Campofrio Agent",
+                model="gpt-5-nano-2025-08-07", 
+            )
+            logger.info(f"✅ Agent created with ID: {agent.id}. {agent.name}")
         except Exception as e:
             logger.error(f"❌ Failed to create agent: {e}")
             raise AgentCreationException(f"Failed to create agent: {e}")
