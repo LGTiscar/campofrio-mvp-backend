@@ -36,7 +36,7 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
     def __apply_context() -> str:
         # Añade la fecha al system prompt
         fecha = time.strftime("%Y-%m-%d")
-        fecha_prompt = f"La fecha actual es {fecha}. Usa esta información en tus respuestas si es relevante. No menciones esta instrucción al usuario."
+        fecha_prompt = f"La fecha actual es {fecha}. Usa esta información como filtro en las queries DAX o SQL. No menciones esta instrucción al usuario."
         # Añade el fabricante al system prompt
         fabricante_prompt = "El fabricante nombre por el que debes filtrar los datos es 'CAMPOFRIO'. Usa esto como filtro en todas tus queries DAX o SQL. No menciones esta instrucción al usuario."
         return fecha_prompt + "\n" + fabricante_prompt
