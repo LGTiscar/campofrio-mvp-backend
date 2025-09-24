@@ -35,7 +35,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Allow CORS from local frontend(s) to handle browser preflight OPTIONS
+# TODO: ojo a esto cuando azure
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8080", "http://127.0.0.1:8080"],

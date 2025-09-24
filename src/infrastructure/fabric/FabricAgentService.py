@@ -26,8 +26,8 @@ logging.basicConfig(
 class FabricAgentService(ChatService, metaclass=SingletonMeta):
     def __init__(self, assistant_id: Optional[str] = None):
         self.provider: FabricLlmProvider = FabricLlmProvider()
+        self.assistant_id = assistant_id
         self.client = self.provider.get_project()
-        self.agent = self.provider.get_agent(assistant_id)
         self._logger = logging.getLogger(__name__)
     
     def create_thread(self) -> str:
@@ -53,6 +53,8 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
         :return: Generador con eventos de streaming del agente LLM.
         """
 
+        agent = self.provider.get_agent(self.assistant_id)
+        
         # Añade la fecha al system prompt
         fecha = time.strftime("%Y-%m-%d")
         fecha_prompt = f"La fecha actual es {fecha}. Usa esta información en tus respuestas si es relevante. No menciones esta instrucción al usuario."
@@ -67,7 +69,7 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
         start_time = time.time()
         with self.client.beta.threads.runs.stream(
             thread_id=thread_id,
-            assistant_id=self.agent.id,
+            assistant_id=agent.id,
             event_handler=AssistantEventHandler()
         ) as stream:
             try:
