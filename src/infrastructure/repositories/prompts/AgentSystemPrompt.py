@@ -235,7 +235,7 @@ class AgentSystemPrompt:
             - **Porcentaje unidades vendidas por tienda y dia**
 
             #### Tabla Potenciales
-            - **Potencial distribución porcentaje**: Venta adicional que se conseguiría si el producto llegase a un 100% de DP. Sirve para evaluar el potencial de venta adicional que genera la mejora de distribución, para animar al KAM a renegociar el surtido con el cliente.
+            - **Potencial distribución importe**: Venta adicional que se conseguiría si el producto llegase a un 100% de DP. Sirve para evaluar el potencial de venta adicional que genera la mejora de distribución, para animar al KAM a renegociar el surtido con el cliente.
             - **Potencial ingresos tienda**: Venta adicional que conseguiría cada tienda si se ajustara a los distintos parámetros
                 - **Potencial desarrollo importe**: Tener la misma cuota de mercado en la tienda que en la cadena que pertenece
                 - **Potencial recuperación importe**: Tener el mismo crecimiento en la tienda que el crecimiento de la categoría (que valor dif% sea igual a valor categoría dif%)
