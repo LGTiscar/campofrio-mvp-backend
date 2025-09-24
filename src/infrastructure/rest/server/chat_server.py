@@ -151,3 +151,22 @@ async def chat_stream_fabric(request: Request):
     except Exception as e:
 
         return JSONResponse({"error": "Server error, probabily reached quota limit"}, status_code=400)
+
+@app.post("/chat/fabric/dax")
+async def get_dax_queries(request: Request):
+    payload = await request.json()
+    thread_id = payload.get("thread_id")
+    message = payload.get("message")
+    assistant_id = payload.get("assistant_id", None)
+    logger.info(f"Received user request: thread_id={thread_id}, message={message}, assistant_id={assistant_id}")
+
+    fabric_service = FabricAgentService(assistant_id)
+
+    if not thread_id or not message:
+        return JSONResponse({"error": "thread_id and message are required"}, status_code=400)
+
+    try:
+        result = fabric_service.get_DAX_query(thread_id, message)
+        return JSONResponse(content={"analysis result": result}, status_code=200)
+    except Exception as e:
+        return JSONResponse({f"Server error {e}"}, status_code=400)
