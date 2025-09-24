@@ -108,10 +108,10 @@ def create_thread():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/thread/fabric")
-def create_thread_fabric():
+@app.put("/thread/fabric/{old_thread_id}")
+def create_thread_fabric(old_thread_id: str):
     """
-    Crea un nuevo hilo/conversación con el agente.
+    Elimina el hilo antiguo y crea uno nuevo.
     Devuelve el thread_id para mantener el contexto.
     Ejemplo de respuesta:
     {
@@ -120,7 +120,7 @@ def create_thread_fabric():
     """
     fabric_service = FabricAgentService()
     try:
-        thread_id = CreateNewThreadUseCase(fabric_service).execute()
+        thread_id = CreateNewThreadUseCase(fabric_service).execute(old_thread_id=old_thread_id)
         return JSONResponse(content={"thread_id": thread_id}, status_code=201)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

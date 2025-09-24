@@ -41,13 +41,17 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
         fabricante_prompt = "El fabricante nombre por el que debes filtrar los datos es 'CAMPOFRIO'. Usa esto como filtro en todas tus queries DAX o SQL. No menciones esta instrucción al usuario."
         return fecha_prompt + "\n" + fabricante_prompt
     
-    def create_thread(self) -> str:
+    def create_thread(self, old_thread_id: str) -> str:
         """
         Crea un nuevo hilo de conversación.
         Returns:
           thread_id: Identificador del hilo creado.
         """
-        # Create thread and send message
+        
+        try:
+            self.client.beta.threads.delete(thread_id=old_thread_id)
+        except Exception as cleanup_error:
+            print(f"⚠️ Warning: Thread cleanup failed: {cleanup_error}")
         try:
             thread_id = self.client.beta.threads.create().id
             self._logger.info(f"✅ Created thread, ID: {thread_id}")
@@ -184,7 +188,8 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
                                 if len(preview) > 5:
                                     logger.debug(f"      ... and {len(preview) - 5} more lines")
                     logger.debug("")  # Empty line for readability
-            
+            else:
+                logger.debug("🗃️ No DAX queries found in lakehouse operations")
             return result
         except Exception as e:
             self._logger.error(f"❌ Error getting DAX queries: {e}")
