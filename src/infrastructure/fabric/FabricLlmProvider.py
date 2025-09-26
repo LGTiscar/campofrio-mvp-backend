@@ -1,6 +1,7 @@
 from src.domain.providers.LLMProvider import LLMProvider
 from src.domain.exceptions.AgentCreationException import AgentCreationException
 from src.infrastructure.SingletonMeta import SingletonMeta
+from src.infrastructure.repositories.prompts.AgentSystemPrompt import AgentSystemPrompt
 from azure.identity import DefaultAzureCredential
 import time
 import uuid
@@ -131,9 +132,12 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
         
         try:
             agent = client.beta.assistants.create(
-                model="gpt-5", 
-                top_p=0.6)
-            logger.info(f"✅ Agent created with ID: {agent.id}")
+                # TODO: esto no cambia nada en el asistente creado
+                name="Campofrio Agent",
+                model="gpt-5-nano-2025-08-07",
+                instructions=AgentSystemPrompt().get_prompt(),
+            )
+            logger.info(f"✅ Agent created with ID: {agent.id}. {agent.name}")
         except Exception as e:
             logger.error(f"❌ Failed to create agent: {e}")
             raise AgentCreationException(f"Failed to create agent: {e}")

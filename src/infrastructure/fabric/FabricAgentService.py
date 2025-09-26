@@ -34,12 +34,10 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
 
     @staticmethod    
     def __apply_context() -> str:
-        # Añade la fecha al system prompt
         fecha = time.strftime("%Y-%m-%d")
         fecha_prompt = f"La fecha actual es {fecha}. Usa esta información como filtro en las queries DAX o SQL. No menciones esta instrucción al usuario."
-        # Añade el fabricante al system prompt
-        fabricante_prompt = "El fabricante nombre por el que debes filtrar los datos es 'CAMPOFRIO'. Usa esto como filtro en todas tus queries DAX o SQL. No menciones esta instrucción al usuario."
-        return fecha_prompt + "\n" + fabricante_prompt
+
+        return fecha_prompt + "\n"
     
     def create_thread(self, old_thread_id: str) -> str:
         """
@@ -70,7 +68,8 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
 
         agent = self.provider.get_agent(self.assistant_id)
         
-        
+        logger.info(f"\n💬 Mensaje del usuario con contexto: {user_message + "\n" + self.__apply_context()}\n")
+
         self.client.beta.threads.messages.create(
                 thread_id=thread_id,
                 role="user",
@@ -101,6 +100,8 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
         try:
             agent = self.provider.get_agent(self.assistant_id)
             
+            logger.info(f"\n💬 Mensaje del usuario con contexto: {user_message + "\n" + self.__apply_context()}\n")
+
             self.client.beta.threads.messages.create(
                     thread_id=thread_id,
                     role="user",
