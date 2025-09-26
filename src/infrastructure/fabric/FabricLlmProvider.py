@@ -1,6 +1,7 @@
 from src.domain.providers.LLMProvider import LLMProvider
 from src.domain.exceptions.AgentCreationException import AgentCreationException
 from src.infrastructure.SingletonMeta import SingletonMeta
+from src.infrastructure.repositories.prompts.AgentSystemPrompt import AgentSystemPrompt
 from azure.identity import DefaultAzureCredential
 import time
 import uuid
@@ -40,7 +41,7 @@ try:
 except ImportError:
     pass
 
-class FabricLlmProvider(LLMProvider):
+class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
     """
     Proveedor LLM para Azure Fabric Data Agent. Utiliza autenticación interactiva y maneja la renovación del token.
     Crea una instancia persistente del agente LLM configurado en Fabric Data Agent.
@@ -133,7 +134,8 @@ class FabricLlmProvider(LLMProvider):
             agent = client.beta.assistants.create(
                 # TODO: esto no cambia nada en el asistente creado
                 name="Campofrio Agent",
-                model="gpt-5-nano-2025-08-07", 
+                model="gpt-5-nano-2025-08-07",
+                instructions=AgentSystemPrompt().get_prompt(),
             )
             logger.info(f"✅ Agent created with ID: {agent.id}. {agent.name}")
         except Exception as e:

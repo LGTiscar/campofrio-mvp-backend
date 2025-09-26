@@ -24,7 +24,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s"
 )
 
-class FabricAgentService(ChatService):
+class FabricAgentService(ChatService, metaclass=SingletonMeta):
     def __init__(self, assistant_id: Optional[str] = None):
         self.provider: FabricLlmProvider = FabricLlmProvider()
         self.assistant_id = assistant_id
@@ -34,7 +34,6 @@ class FabricAgentService(ChatService):
 
     @staticmethod    
     def __apply_context() -> str:
-        # Añade la fecha al system prompt
         fecha = time.strftime("%Y-%m-%d")
         fecha_prompt = f"La fecha actual es {fecha}. Usa esta información como filtro en las queries DAX o SQL. No menciones esta instrucción al usuario."
 
