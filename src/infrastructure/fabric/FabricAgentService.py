@@ -28,7 +28,6 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
     def __init__(self, assistant_id: Optional[str] = None):
         self.provider: FabricLlmProvider = FabricLlmProvider()
         self.assistant_id = assistant_id
-        self.client = self.provider.get_project()
         self._logger = logging.getLogger(__name__)
         self.sql_extractor = SqlExtractor()
 
@@ -46,12 +45,14 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
           thread_id: Identificador del hilo creado.
         """
         
+        client = self.provider.get_project()
+
         try:
-            self.client.beta.threads.delete(thread_id=old_thread_id)
+            client.beta.threads.delete(thread_id=old_thread_id)
         except Exception as cleanup_error:
             print(f"⚠️ Warning: Thread cleanup failed: {cleanup_error}")
         try:
-            thread_id = self.client.beta.threads.create().id
+            thread_id = client.beta.threads.create().id
             self._logger.info(f"✅ Created thread, ID: {thread_id}")
         except Exception as e:
             self._logger.error(f"❌ Error creating thread, error: {e}")
@@ -67,10 +68,11 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
         """
 
         agent = self.provider.get_agent(self.assistant_id)
+        client = self.provider.get_project()
         
         logger.info(f"\n💬 Mensaje del usuario con contexto: {user_message + "\n" + self.__apply_context()}\n")
 
-        self.client.beta.threads.messages.create(
+        client.beta.threads.messages.create(
                 thread_id=thread_id,
                 role="user",
                 content=user_message + "\n" + self.__apply_context()
@@ -78,7 +80,7 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
         
         # Monitor the run with timeout
         start_time = time.time()
-        with self.client.beta.threads.runs.stream(
+        with client.beta.threads.runs.stream(
             thread_id=thread_id,
             assistant_id=agent.id,
             event_handler=AssistantEventHandler()
@@ -97,19 +99,22 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
                 yield {"done": True}
     
     def get_DAX_query(self, thread_id: str, user_message: str):
+        
+        client = self.provider.get_project()
+
         try:
             agent = self.provider.get_agent(self.assistant_id)
             
             logger.info(f"\n💬 Mensaje del usuario con contexto: {user_message + "\n" + self.__apply_context()}\n")
 
-            self.client.beta.threads.messages.create(
+            client.beta.threads.messages.create(
                     thread_id=thread_id,
                     role="user",
                     content=user_message + "\n" + self.__apply_context()
                 )
             
             # Start and monitor run
-            run = self.client.beta.threads.runs.create(
+            run = client.beta.threads.runs.create(
                 thread_id=thread_id,
                 assistant_id=agent.id
             )
@@ -117,16 +122,16 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
             while run.status in ["queued", "in_progress"]:
                 print(f"⏳ Status: {run.status}")
                 time.sleep(2)
-                run = self.client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+                run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
             
             # Get detailed run steps
-            steps = self.client.beta.threads.runs.steps.list(
+            steps = client.beta.threads.runs.steps.list(
                 thread_id=thread_id,
                 run_id=run.id
             )
 
             # Get messages
-            messages = self.client.beta.threads.messages.list(
+            messages = client.beta.threads.messages.list(
                 thread_id=thread_id,
                 order="asc"
             )
