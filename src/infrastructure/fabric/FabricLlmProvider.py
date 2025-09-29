@@ -3,6 +3,7 @@ from src.domain.exceptions.AgentCreationException import AgentCreationException
 from src.infrastructure.SingletonMeta import SingletonMeta
 from src.infrastructure.repositories.prompts.AgentSystemPrompt import AgentSystemPrompt
 from azure.identity import DefaultAzureCredential
+from azure.core.credentials import AccessToken
 import time
 import uuid
 import logging
@@ -82,11 +83,11 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
         Refresh the authentication token.
         """
         try:
-            logger.debug("🔄 Refreshing authentication token...")
+            logger.info("🔄 Refreshing authentication token...")
             if self.credential is None:
                 raise ValueError("No credential available")
             self.token = self.credential.get_token("https://api.fabric.microsoft.com/.default")
-            logger.debug(f"✅ Token obtained, expires at: {time.ctime(self.token.expires_on)}")
+            logger.info(f"✅ Token obtained, expires at: {time.ctime(self.token.expires_on)}")
             
         except Exception as e:
             logger.error(f"❌ Token refresh failed: {e}")
