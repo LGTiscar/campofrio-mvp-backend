@@ -4,6 +4,7 @@ from src.infrastructure.SingletonMeta import SingletonMeta
 from src.infrastructure.repositories.prompts.AgentSystemPrompt import AgentSystemPrompt
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AccessToken
+from dotenv import load_dotenv
 import time
 import uuid
 import logging
@@ -35,11 +36,13 @@ warnings.filterwarnings(
     message=r".*Assistants API is deprecated.*"
 )
 
-# Optional: Load from .env file if available
 try:
-    from dotenv import load_dotenv
     load_dotenv()
-except ImportError:
+    logger.info("✅ .env file loaded successfully.")
+    # Don't log secrets; only log presence of expected vars
+    logger.info(f"AZURE_CLIENT_ID present: {bool(os.getenv('AZURE_CLIENT_ID'))}")
+except Exception as e:
+    logger.warning(f"Could not load .env file: {e}")
     pass
 
 class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
@@ -66,8 +69,31 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
         try:
             logger.info("\n🔐 Starting authentication...")
 
-            # Create credential for interactive authentication
-            self.credential = DefaultAzureCredential(managed_identity_client_id="luisgtiscar@pospotential.com")
+            # If a Service Principal is configured via environment variables, validate they are complete.
+            sp_client = os.getenv("AZURE_CLIENT_ID")
+            sp_tenant = os.getenv("AZURE_TENANT_ID")
+            sp_secret = os.getenv("AZURE_CLIENT_SECRET")
+
+            if sp_client or sp_tenant or sp_secret:
+                missing = [n for n, v in (
+                    ("AZURE_CLIENT_ID", sp_client),
+                    ("AZURE_TENANT_ID", sp_tenant),
+                    ("AZURE_CLIENT_SECRET", sp_secret),
+                ) if not v]
+
+                if missing:
+                    logger.error(
+                        "Service Principal environment variables are partly set but missing: %s.\n"
+                        "Provide AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_CLIENT_SECRET to use a Service Principal,\n"
+                        "or remove these vars to fall back to other credential flows (az login, managed identity).",
+                        missing,
+                    )
+                    raise ValueError(f"Incomplete service principal env vars: {missing}")
+
+                logger.info("Using Service Principal from environment (AZURE_CLIENT_ID present).")
+
+            # Create credential for authentication (DefaultAzureCredential will pick the appropriate flow)
+            self.credential = DefaultAzureCredential()
             
             # Get initial token
             self._refresh_token()
