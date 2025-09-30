@@ -48,7 +48,7 @@ async def root():
     """
     return {"message": "Backend del Agente Campofrío"}
 
-@app.put("/thread/fabric/{old_thread_id}")
+@app.put("/thread/{old_thread_id}")
 def create_thread_fabric(old_thread_id: str):
     """
     Elimina el hilo antiguo y crea uno nuevo.
@@ -65,7 +65,7 @@ def create_thread_fabric(old_thread_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.post("/chat/fabric/stream")
+@app.post("/chat")
 async def chat_stream_fabric(request: Request):
     payload = await request.json()
     thread_id = payload.get("thread_id")
@@ -92,7 +92,7 @@ async def chat_stream_fabric(request: Request):
 
         return JSONResponse({"error": "Server error, probabily reached quota limit"}, status_code=400)
 
-@app.post("/chat/fabric/dax")
+@app.post("/chat/dax")
 async def get_dax_queries(request: Request):
     payload = await request.json()
     thread_id = payload.get("thread_id")
