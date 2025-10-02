@@ -72,11 +72,16 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
         
         logger.info(f"\n💬 Mensaje del usuario con contexto: {user_message + "\n" + self.__apply_context()}\n")
 
-        client.beta.threads.messages.create(
-                thread_id=thread_id,
-                role="user",
-                content=user_message + "\n" + self.__apply_context()
-            )
+        try:
+            client.beta.threads.messages.create(
+                    thread_id=thread_id,
+                    role="user",
+                    content=user_message + "\n" + self.__apply_context()
+                )
+        except Exception as e:
+            self._logger.error(f"❌ Error creating user message: {e}")
+            yield {"error": str(e)}
+            return
         
         # Monitor the run with timeout
         start_time = time.time()
@@ -158,44 +163,67 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
             if not sql_analysis["queries"]:
                 regex_queries = self.sql_extractor._regex_extract_sql_queries(steps)
                 if regex_queries:
-                    sql_analysis["queries"] = regex_queries
-                    sql_analysis["data_retrieval_query"] = regex_queries[0] if regex_queries else None
+                    # Format possible DAX queries for readability/execution
+                    formatted = []
+                    for q in regex_queries:
+                        try:
+                            if self.sql_extractor._is_dax_query(q):
+                                formatted.append(self.sql_extractor._format_dax_query(q))
+                            else:
+                                formatted.append(q)
+                        except Exception:
+                            formatted.append(q)
+
+                    sql_analysis["queries"] = formatted
+                    sql_analysis["data_retrieval_query"] = formatted[0] if formatted else None
             
             result = {}
             result["final_response"] = text_content
 
             # Add SQL analysis if found
             if sql_analysis["queries"]:
-                result["sql_queries"] = sql_analysis["queries"]
+                # Ensure all queries are formatted (in case they came from the primary extractor)
+                formatted_all = []
+                for q in sql_analysis["queries"]:
+                    try:
+                        if self.sql_extractor._is_dax_query(q):
+                            formatted_all.append(self.sql_extractor._format_dax_query(q))
+                        else:
+                            formatted_all.append(q)
+                    except Exception:
+                        formatted_all.append(q)
+
+                result["sql_queries"] = formatted_all
                 result["sql_data_previews"] = sql_analysis["data_previews"]
                 result["data_retrieval_query"] = sql_analysis["data_retrieval_query"]
                 
                 logger.debug(f"🗃️ Found {len(sql_analysis['queries'])} DAX queries in lakehouse operations")
                 
                 for i, query in enumerate(sql_analysis["queries"], 1):
-                    logger.debug(f"📄 DAX Query {i}:")
-                    logger.debug(f"   {query}")
+                    logger.info(f"📄 DAX Query {i}:")
+                    logger.info(f"   {query}")
                     
                     # Show data preview if this query retrieved data
                     if i == sql_analysis["data_retrieval_query_index"]:
-                        logger.debug(f"   🎯 This query retrieved the data!")
+                        logger.info(f"   🎯 This query retrieved the data!")
                         if sql_analysis["data_previews"][i-1]:
-                            logger.debug(f"   📊 Data Preview:")
+                            logger.info(f"   📊 Data Preview:")
                             preview = sql_analysis["data_previews"][i-1]
                             
                             # Check if the preview is a raw markdown table (single item)
                             if len(preview) == 1 and '\n' in preview[0] and '|' in preview[0]:
                                 # This is a raw markdown table, print it directly
-                                logger.debug(preview[0])
+                                logger.info(preview[0])
                             else:
                                 # This is parsed row data, print line by line
                                 for line in preview[:5]:  # Show first 5 lines
-                                    logger.debug(f"      {line}")
+                                    logger.info(f"      {line}")
                                 if len(preview) > 5:
-                                    logger.debug(f"      ... and {len(preview) - 5} more lines")
-                    logger.debug("")  # Empty line for readability
+                                    logger.info(f"      ... and {len(preview) - 5} more lines")
+                    logger.info("")  # Empty line for readability
+
             else:
-                logger.debug("🗃️ No DAX queries found in lakehouse operations")
+                logger.info("🗃️ No DAX queries found in lakehouse operations")
             return result
         except Exception as e:
             self._logger.error(f"❌ Error getting DAX queries: {e}")
