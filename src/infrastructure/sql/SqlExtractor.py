@@ -50,9 +50,20 @@ class SqlExtractor:
         
         # Remove duplicates while preserving order
         unique_queries = list(dict.fromkeys(sql_queries))
-        
+
+        # Format queries that look like DAX for readability/execution
+        formatted_queries = []
+        for q in unique_queries:
+            try:
+                if self._is_dax_query(q):
+                    formatted_queries.append(self._format_dax_query(q))
+                else:
+                    formatted_queries.append(q)
+            except Exception:
+                formatted_queries.append(q)
+
         return {
-            "queries": unique_queries,
+            "queries": formatted_queries,
             "data_previews": data_previews,
             "data_retrieval_query": data_retrieval_query,
             "data_retrieval_query_index": data_retrieval_query_index
@@ -420,3 +431,130 @@ class SqlExtractor:
                     sql_queries.append(clean_query)
         
         return sql_queries
+
+    def _is_dax_query(self, q: str) -> bool:
+        """
+        Heuristic to detect if a query is DAX instead of SQL.
+        """
+        import re
+        if not q or len(q) < 6:
+            return False
+        q_up = q.upper()
+        dax_signatures = ["EVALUATE", "SUMMARIZECOLUMNS", "CALCULATETABLE", "ADDCOLUMNS", "FILTER(", "ORDER BY"]
+        return any(sig in q_up for sig in dax_signatures)
+
+    def _format_dax_query(self, q: str) -> str:
+        """
+        Lightweight DAX pretty-printer.
+        - Removes markdown fences
+        - Restores real newlines from escaped sequences
+        - Indents based on parentheses and splits after commas
+        This is not a full parser but improves readability a lot for typical agent-generated DAX.
+        """
+        import re
+
+        # Remove code fences and language tags
+        q = q.strip()
+        q = re.sub(r"^```\w*", "", q)
+        q = re.sub(r"```$", "", q)
+
+        # Unescape any escaped newlines/tabs
+        q = q.replace('\\n', '\n').replace('\\t', '\t')
+
+        # Normalize stray carriage returns
+        q = q.replace('\r\n', '\n').replace('\r', '\n')
+
+        # Ensure single newline separation
+        q = re.sub(r"\n{2,}", '\n', q)
+
+        indent_unit = '  '
+        out = []
+        indent = 0
+        i = 0
+        length = len(q)
+        # We'll track whether we are inside a single-line // comment or a string
+        in_single_line_comment = False
+        in_string = False
+        string_char = ''
+
+        while i < length:
+            ch = q[i]
+
+            # handle start of string
+            if not in_string and ch in ("'", '"'):
+                in_string = True
+                string_char = ch
+                out.append(ch)
+                i += 1
+                continue
+            elif in_string:
+                out.append(ch)
+                if ch == string_char:
+                    in_string = False
+                    string_char = ''
+                i += 1
+                continue
+
+            # handle single-line comment //
+            if not in_single_line_comment and q[i:i+2] == '//':
+                in_single_line_comment = True
+                out.append('//')
+                i += 2
+                continue
+            if in_single_line_comment:
+                out.append(ch)
+                if ch == '\n':
+                    in_single_line_comment = False
+                    # add indentation for next line
+                    out.append(indent_unit * indent)
+                i += 1
+                continue
+
+            # Parenthesis control indentation
+            if ch == '(':
+                out.append('(')
+                out.append('\n')
+                indent += 1
+                out.append(indent_unit * indent)
+                i += 1
+                continue
+            elif ch == ')':
+                out.append('\n')
+                indent = max(indent - 1, 0)
+                out.append(indent_unit * indent)
+                out.append(')')
+                i += 1
+                # if next char is comma, handle below
+                continue
+            elif ch == ',':
+                out.append(',')
+                out.append('\n')
+                out.append(indent_unit * indent)
+                i += 1
+                continue
+            elif ch == '\n':
+                out.append('\n')
+                # after newline add indentation
+                out.append(indent_unit * indent)
+                i += 1
+                # collapse multiple newlines
+                while i < length and q[i] == '\n':
+                    i += 1
+                continue
+            else:
+                out.append(ch)
+                i += 1
+
+        pretty = ''.join(out)
+
+        # Put major keywords on their own line for readability
+        pretty = re.sub(r"\b(EVALUATE|RETURN)\b", r"\n\1", pretty, flags=re.IGNORECASE)
+        pretty = re.sub(r"\b(ORDER BY)\b", r"\n\1", pretty, flags=re.IGNORECASE)
+        pretty = re.sub(r"\n{2,}", '\n', pretty)
+
+        # Trim leading/trailing whitespace on each line
+        lines = [ln.rstrip() for ln in pretty.split('\n')]
+        # Remove leading empty lines
+        while lines and lines[0].strip() == '':
+            lines.pop(0)
+        return '\n'.join(lines)

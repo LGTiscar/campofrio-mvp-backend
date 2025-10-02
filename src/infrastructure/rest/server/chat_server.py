@@ -5,6 +5,7 @@ from src.domain.models.ChatRequest import ChatRequest
 from src.application.ChatWithAgentUseCase import ChatWithAgentUseCase
 from src.application.CreateNewThreadUseCase import CreateNewThreadUseCase
 from src.infrastructure.fabric.FabricAgentService import FabricAgentService
+from src.infrastructure.azure.AzureFoundryAgentService import AzureFoundryAgentService
 import logging
 import sys
 import json
@@ -32,7 +33,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# TODO: ojo a esto cuando azure
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8080", "http://127.0.0.1:8080"],
@@ -64,7 +64,8 @@ def create_thread_fabric(old_thread_id: str):
         return JSONResponse(content={"thread_id": thread_id}, status_code=201)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+
 @app.post("/chat")
 async def chat_stream_fabric(request: Request):
     payload = await request.json()
@@ -92,6 +93,31 @@ async def chat_stream_fabric(request: Request):
 
         return JSONResponse({"error": "Server error, probabily reached quota limit"}, status_code=400)
 
+@app.post("/chat/foundry")
+async def chat_stream(request: Request):
+    payload = await request.json()
+    thread_id = payload.get("thread_id")
+    message = payload.get("message")
+    service = AzureFoundryAgentService()
+    logger.info(f"Received streaming chat request: thread_id={thread_id}, message={message}")
+
+    if not thread_id or not message:
+        return JSONResponse({"error": "thread_id and message are required"}, status_code=400)
+
+    try:
+        def event_stream():
+            for evt in service.chat_stream(thread_id, message):
+                data = json.dumps(evt)
+                yield f"data: {data}\n\n"
+            yield "event: done\ndata: {}\n\n"
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+    
+    except Exception as e:
+
+        return JSONResponse({"error": f"Server error, {e}"}, status_code=500)
+    
+    
 @app.post("/chat/dax")
 async def get_dax_queries(request: Request):
     payload = await request.json()
