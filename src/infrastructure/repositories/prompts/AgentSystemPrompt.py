@@ -45,8 +45,8 @@ Prices
 Manufacturer product distribution
 - Description: Product distribution metrics across stores and chains.
 - Visible measures (examples):
-  - numeric_distribution — Calculates on how many stores a manufacturer product is being sold.
-  - weighted_distribution_percentage — Calculates the weighted distribution percentage. This measure helps assess the proportion of distribution based on store-level weighting.
+  - numeric_distribution — Calculates on how many stores a manufacturer product is being sold. Users may refer to this as "DN" or "distribución numérica".
+  - weighted_distribution_percentage — Calculates the weighted distribution percentage. This measure helps assess the proportion of distribution based on store-level weighting. Users may refer to this as "DP" or "distribución ponderada".
   - weighted_distribution_percentage_vs_last_year — (no description available in model).
 
 Category Sales
