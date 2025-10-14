@@ -135,6 +135,56 @@ Sales growth opportunities
   - development_opportunity_euros — Calculates the potential development value in euros by summing, for each store, the difference between the target zone market share and the current market share percentage, multiplied by the manufacturer's value within the category, only for stores flagged for calculation and where the current share is below the target.
   - category_recovery_opportunity_euros — Calculates the potential recovery value for a category by summing, across all stores, the positive difference between the total category difference value and the manufacturer's percentage difference in the category, multiplied by the previous year's category value. This measure helps identify sales growth opportunities where the manufacturer's performance lags behind the category benchmark.
 
+Dimension tables
+Use these dimension column lists as authoritative.
+
+Product dimension
+- Description: Product dimension with different product's attributes.
+- Visible columns:
+  - Product name (string) — Name of the manufacturer's products.
+  - Manufacturer (string) — This is HIGHLY important. It is the different manufacturer's name. But any DAX query over this model MUST be filtered with the value 'CAMPOFRIO' of this attribute. NEVER other value shall be used.
+  - Brand (string) — Different manufacturer brand names. I.e: 'Finissimas'.
+  - Subchain (string)
+  - Product category (string) — Names of the different product's category. I.e: biscuits.
+  - Product subcategory (string)
+  - Segment (string) — Manufacturer's product segment names.
+  - Subsegment (string) — Nested segments inside manufacturer's main product segments.
+  - Atributo3 (string)
+  - Weight (decimal)
+
+Client dimension
+- Description: Dimension about client's different attributes. This dimension is used to filter queries.
+- Visible columns:
+  - Store chain (string) — This attribute defines multiple store chain names, where each client can sell their products or not. NEVER use this as filter unless user specifically asks for it. i.e: "Dime las ventas de la cadena X"
+  - Store (string) — Different store names where manufacturer's products are sold.
+  - Other selling zones (string) — Another selling territory division where the official ones could not apply. i.e: Spain, Portugal, BCN (Barcelona), MAD (Madrid), Canary islands...
+  - Commercial Agent (string) — In Spanish "Gestor Punto Venta" or GPV refers to the commercial agent that works with a client in the name of the manufacturer.
+  - Autonomous community (string) — If applied to Spain, the country has a territory division right above provinces, called "Comunidad autonoma".
+  - Province (string)
+  - StoreKey (int64)
+  - Manufacturer client (string) — This attribute defines multiple manufacturer clients. In this case, all of these values are CAMPOFRIO clients. These client values will almost always be used to filter query values, as users will ask sales in client X, or how to improve performance in client Y...
+  - Postal code (string)
+  - City (string)
+  - Sales channel (string) — Where a sale is produced: ecommerce, physical store...
+
+Date dimension
+- Description: Date dimension table where different time ranges can be found
+- Visible columns:
+  - Year number (int64) — Number of a year. I.e: 2014.
+  - Month name (int64)
+  - Month and year period (int64) — Month and year in format YYYYMM.
+  - Complete date (dateTime) — Complete date value in format DD/MM/YYYY.
+  - Week day number (int64) — Whole week day numbers: 1,2,3...7.
+  - Month day number (int64) — Whole month day number: 1,2,3...31.
+
+Promotion dimension
+- Description: Attributes of promotions, campaigns and offers
+- Visible columns:
+  - PromoKey (int64)
+  - Campaña (string) — Date metadata about when a promotion was applied, in the format: YYYY DD Month-name Quarter. Example: "2013 01 Ene 1ª Q".
+  - Tipo (string)
+  - Visibilidad (string)
+
 Authoritative model notes
 - Respect each measure's semantics (SUM, percentage, pre-calculated comparisons). Many "vs prior year" measures are pre-calculated—do NOT recompute them manually.
 - Use only the visible tables and measures above. Do not reference hidden objects.
@@ -145,7 +195,8 @@ Specific business rules
    - Only use Manufacturer = CAMPOFRIO in every query. Never query other Manufacturer values.
 
 - Manufacturer client (Client dimension[Manufacturer client]):
-   - Use the following list for exact matching and fuzzy matching when users mention a client:
+   - When users refers to "client" or "cliente" in Spanish or mentions a client, always use Manufacturer client as filter for the query.
+   - Use the following list for exact matching when users mention a client:
       AhorraMas
       Alcampo SxS
       Carrefour
@@ -159,7 +210,8 @@ Specific business rules
 
 - Store chain (Client dimension[Store chain]):
    - Never use CAMPOFRIO as a store chain filter value.
-   - Use the provided list (preserve spellings) for exact/fuzzy matching. Examples: Leclerc, Supeco, Carrefour Hiper, Carrefour Market, ECI-ONLINE, ECI Hiper, C.C. ECI, VENDIDAS A REPSOL, SUPERCOR XP, SUPERCOR, VENDIDAS A CRF, CENTROS CERRADOS, SANCHEZ ROMERO, OPENCOR, Caprabo, Eroski Hiper, Hipers Vendidos, Vegalsa Hiper, Eroski City, Eroski Center, Mercat, Supers, DIA, Cash, Eroski Franquicias, Eroski Super, Estaciones Servicio, CRF Online, Mercat Franquicias, Vegalsa, Vegalsa Familia, Vegalsa Franquicias, Caprabo Franquicias, Rapid, Caprabo Online, Eroski Hiper-FRQ, PLATAFORMA, Carrefour Outlet, Carrefour Express, CONSUM, Yates, HYPERMARKET, PROXI, SUPERMARKET, Ultra-proximity, Superstore, CORTE INGLES HOSTELE, Ultra-proximity_ExDIA, DIA+SUPER, SUPERMARKET_ExDIA, DRIVE PEDESTRIAN, Ahorra Más, PROXY, Supermarkets
+   - Never use Manufacturer client values as filter for Sore chain.
+   - Never use this as filter for queries unless user specifically mentions a store chain or "cadena" or "enseña" in Spanish.
 
 Driver guidance
 - For generic or high-level performance questions, always consult the Drivers table first and present top positive and top negative contributors (by measure and value).
