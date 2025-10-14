@@ -38,27 +38,6 @@ class FabricAgentService(ChatService, metaclass=SingletonMeta):
 
         return fecha_prompt + "\n"
     
-    def create_thread(self, old_thread_id: str) -> str:
-        """
-        Crea un nuevo hilo de conversación.
-        Returns:
-          thread_id: Identificador del hilo creado.
-        """
-        
-        client = self.provider.get_project()
-
-        try:
-            client.beta.threads.delete(thread_id=old_thread_id)
-        except Exception as cleanup_error:
-            print(f"⚠️ Warning: Thread cleanup failed: {cleanup_error}")
-        try:
-            thread_id = client.beta.threads.create().id
-            self._logger.info(f"✅ Created thread, ID: {thread_id}")
-        except Exception as e:
-            self._logger.error(f"❌ Error creating thread, error: {e}")
-            raise ThreadCreationException(f"Failed to create thread, error: {e}")
-        return thread_id
-    
     async def chat_stream(self, thread_id: str, user_message: str):
         """
         Envía un mensaje al agente LLM usando el proveedor configurado y devuelve un generador para el resultado en streaming.

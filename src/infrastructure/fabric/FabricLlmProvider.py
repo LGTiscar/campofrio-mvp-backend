@@ -1,5 +1,6 @@
 from src.domain.providers.LLMProvider import LLMProvider
 from src.domain.exceptions.AgentCreationException import AgentCreationException
+from src.domain.exceptions.ThreadCreationException import ThreadCreationException
 from src.infrastructure.SingletonMeta import SingletonMeta
 from src.infrastructure.repositories.prompts.AgentSystemPrompt import AgentSystemPrompt
 from azure.identity import DefaultAzureCredential
@@ -170,3 +171,24 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
         
     def get_project(self):
         return self._get_openai_client()
+
+    def create_thread(self, old_thread_id: str) -> str:
+        """
+        Crea un nuevo hilo de conversación.
+        Returns:
+          thread_id: Identificador del hilo creado.
+        """
+        
+        client = self.get_project()
+
+        try:
+            client.beta.threads.delete(thread_id=old_thread_id)
+        except Exception as cleanup_error:
+            print(f"⚠️ Warning: Thread cleanup failed: {cleanup_error}")
+        try:
+            thread_id = client.beta.threads.create().id
+            logger.info(f"✅ Created thread, ID: {thread_id}")
+        except Exception as e:
+            logger.error(f"❌ Error creating thread, error: {e}")
+            raise ThreadCreationException(f"Failed to create thread, error: {e}")
+        return thread_id

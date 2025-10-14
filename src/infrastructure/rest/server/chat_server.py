@@ -5,7 +5,9 @@ from src.domain.models.ChatRequest import ChatRequest
 from src.application.ChatWithAgentUseCase import ChatWithAgentUseCase
 from src.application.CreateNewThreadUseCase import CreateNewThreadUseCase
 from src.infrastructure.fabric.FabricAgentService import FabricAgentService
+from src.infrastructure.fabric.FabricLlmProvider import FabricLlmProvider
 from src.infrastructure.azure.AzureFoundryAgentService import AzureFoundryAgentService
+from src.infrastructure.azure.AzureFoundryAgentProvider import AzureFoundryAgentProvider
 import logging
 import sys
 import json
@@ -48,6 +50,8 @@ async def root():
     """
     return {"message": "Backend del Agente Campofrío"}
 
+### Fabric Endpoints
+
 @app.put("/thread/{old_thread_id}")
 def create_thread_fabric(old_thread_id: str):
     """
@@ -58,13 +62,12 @@ def create_thread_fabric(old_thread_id: str):
         "thread_id": "abc123"
     }
     """
-    fabric_service = FabricAgentService()
+    provider = FabricLlmProvider()
     try:
-        thread_id = CreateNewThreadUseCase(fabric_service).execute(old_thread_id=old_thread_id)
+        thread_id = CreateNewThreadUseCase(provider).execute(old_thread_id=old_thread_id)
         return JSONResponse(content={"thread_id": thread_id}, status_code=201)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.post("/chat")
 async def chat_stream_fabric(request: Request):
@@ -93,7 +96,44 @@ async def chat_stream_fabric(request: Request):
 
         return JSONResponse({"error": "Server error, probabily reached quota limit"}, status_code=400)
 
-@app.post("/chat/foundry")
+@app.post("/chat/dax")
+async def get_dax_queries(request: Request):
+    payload = await request.json()
+    thread_id = payload.get("thread_id")
+    message = payload.get("message")
+    assistant_id = payload.get("assistant_id", None)
+    logger.info(f"Received user request: thread_id={thread_id}, message={message}, assistant_id={assistant_id}")
+
+    fabric_service = FabricAgentService(assistant_id)
+
+    if not thread_id or not message:
+        return JSONResponse({"error": "thread_id and message are required"}, status_code=400)
+
+    try:
+        result = fabric_service.get_DAX_query(thread_id, message)
+        return JSONResponse(content={"analysis result": result}, status_code=200)
+    except Exception as e:
+        return JSONResponse({f"Server error {e}"}, status_code=500)
+
+### Foundry Endpoints
+@app.post("/foundry/thread")
+def create_thread():
+    """
+    Crea un nuevo hilo de conversación.
+    Devuelve el thread_id para mantener el contexto.
+    Ejemplo de respuesta:
+    {
+        "thread_id": "abc123"
+    }
+    """
+    provider = AzureFoundryAgentProvider()
+    try:
+        thread_id = provider.create_thread()
+        return JSONResponse(content={"thread_id": thread_id}, status_code=201)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/foundry/chat")
 async def chat_stream(request: Request):
     payload = await request.json()
     thread_id = payload.get("thread_id")
@@ -116,23 +156,3 @@ async def chat_stream(request: Request):
     except Exception as e:
 
         return JSONResponse({"error": f"Server error, {e}"}, status_code=500)
-    
-    
-@app.post("/chat/dax")
-async def get_dax_queries(request: Request):
-    payload = await request.json()
-    thread_id = payload.get("thread_id")
-    message = payload.get("message")
-    assistant_id = payload.get("assistant_id", None)
-    logger.info(f"Received user request: thread_id={thread_id}, message={message}, assistant_id={assistant_id}")
-
-    fabric_service = FabricAgentService(assistant_id)
-
-    if not thread_id or not message:
-        return JSONResponse({"error": "thread_id and message are required"}, status_code=400)
-
-    try:
-        result = fabric_service.get_DAX_query(thread_id, message)
-        return JSONResponse(content={"analysis result": result}, status_code=200)
-    except Exception as e:
-        return JSONResponse({f"Server error {e}"}, status_code=400)
