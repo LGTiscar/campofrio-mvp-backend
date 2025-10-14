@@ -70,7 +70,7 @@ class FabricLlmProvider(LLMProvider, metaclass=SingletonMeta):
             logger.info("\n🔐 Starting authentication...")
 
             # Create credential for authentication (DefaultAzureCredential will pick the appropriate flow)
-            self.credential = DefaultAzureCredential()
+            self.credential = DefaultAzureCredential(managed_identity_client_id="luis.garcia@pospotential.com")
             
             # Get initial token
             self._refresh_token()
